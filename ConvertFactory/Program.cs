@@ -65,31 +65,46 @@ namespace ConvertFactory
         /// <exception cref="InvalidOperationException">Thrown when FFmpeg setup fails.</exception>
         private static async Task SetupFFmpegAsync()
         {
-            ProgressForm progressForm = null;
-            
             try
             {
-                progressForm = new ProgressForm();
-                var formThread = new System.Threading.Thread(() => Application.Run(progressForm));
+                ProgressForm progressForm = null;
+
+                var formThread = new System.Threading.Thread(() =>
+                {
+                    progressForm = new ProgressForm();
+                    Application.Run(progressForm);
+                });
+
                 formThread.SetApartmentState(System.Threading.ApartmentState.STA);
                 formThread.Start();
-                
-                Console.WriteLine("Checking FFmpeg binaries...");
-                await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
 
-                Console.WriteLine("Setting FFmpeg path...");
+                // Wait for the form to be created
+                while (progressForm == null || !progressForm.IsHandleCreated)
+                {
+                    await Task.Delay(100);
+                }
+
+                var progress = new Progress<ProgressInfo>(info =>
+                {
+                    int percent = info.TotalBytes > 0
+                        ? (int)(info.DownloadedBytes * 100 / info.TotalBytes)
+                        : 0;
+
+                    progressForm?.Invoke(new Action(() =>
+                    {
+                        progressForm.UpdateProgress(percent, $"Downloading FFmpeg... {percent}%");
+                    }));
+                });
+
+                await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official, progress);
+
                 FFmpeg.SetExecutablesPath(Xabe.FFmpeg.FFmpeg.ExecutablesPath);
+
+                progressForm?.Invoke(new Action(() => progressForm.Close()));
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException("FFmpeg setup failed", ex);
-            }
-            finally
-            {
-                if (progressForm != null)
-                {
-                    progressForm?.BeginInvoke(new Action(() => progressForm.Close()));
-                }
+                MessageBox.Show($"Error downloading FFmpeg:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

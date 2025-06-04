@@ -1,4 +1,5 @@
-﻿using System.Windows.Forms;
+﻿using System;
+using System.Windows.Forms;
 
 namespace ConvertFactory
 {
@@ -11,8 +12,16 @@ namespace ConvertFactory
 
         public void UpdateProgress(int percentage, string message)
         {
-            progressBar.Value = percentage;
-            lblStatus.Text = message;
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => UpdateProgress(percentage, message)));
+            }
+            else
+            {
+                progressBar.Value = percentage;
+                lblStatus.Text = message;
+            }
         }
+
     }
 }
