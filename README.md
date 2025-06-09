@@ -198,4 +198,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - FFmpeg for the conversion engine
 - Xabe.FFmpeg for the .NET wrapper
-- All contributors and users of the application 
